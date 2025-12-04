@@ -1,0 +1,161 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import AppLayout from '@/components/layout/AppLayout';
+import DataTable from '@/components/tables/DataTable';
+import InspectionReportForm from '@/components/forms/InspectionReportForm';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from '@/hooks/use-toast';
+import { Plus, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
+
+export default function AgentInspections() {
+  const { user } = useAuth();
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editData, setEditData] = useState<any>(null);
+  const [deleteData, setDeleteData] = useState<any>(null);
+
+  const columns = [
+    { key: 'date', label: 'Date', render: (v: string) => new Date(v).toLocaleDateString() },
+    { key: 'loan_ac_no', label: 'Loan A/C No' },
+    { key: 'customer_name', label: 'Customer Name' },
+    { key: 'loan_amount', label: 'Loan Amount', render: (v: number) => `₹${v?.toLocaleString() || 0}` },
+    { key: 'location', label: 'Location' },
+    { key: 'region', label: 'Region' },
+    { key: 'state', label: 'State' },
+    { key: 'payment_status', label: 'Payment Status' },
+    { key: 'invoice_status', label: 'Invoice Status' },
+  ];
+
+  useEffect(() => {
+    if (user) {
+      fetchReports();
+    }
+  }, [user]);
+
+  const fetchReports = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('field_inspection_reports')
+      .select('*')
+      .eq('created_by_user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setReports(data || []);
+    }
+    setLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteData) return;
+
+    const { error } = await supabase
+      .from('field_inspection_reports')
+      .delete()
+      .eq('id', deleteData.id)
+      .eq('created_by_user_id', user?.id);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Report deleted successfully' });
+      fetchReports();
+    }
+    setDeleteData(null);
+  };
+
+  const exportToExcel = () => {
+    const exportData = reports.map((r) => ({
+      'Date': new Date(r.date).toLocaleDateString(),
+      'Loan A/C No': r.loan_ac_no,
+      'Customer Name': r.customer_name,
+      'Loan Amount': r.loan_amount,
+      'Location': r.location,
+      'Region': r.region,
+      'LAR Remarks': r.lar_remarks || '',
+      'State': r.state,
+      'Payment Status': r.payment_status,
+      'Invoice Status': r.invoice_status,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'My Inspection Reports');
+    XLSX.writeFile(wb, `my_inspection_reports_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast({ title: 'Export Complete' });
+  };
+
+  return (
+    <AppLayout>
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">My Inspection Reports</h1>
+            <p className="text-muted-foreground mt-1">Manage your field inspection reports</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportToExcel}>
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+            <Button size="sm" onClick={() => { setEditData(null); setFormOpen(true); }}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Report
+            </Button>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-4 sm:p-6">
+          <DataTable
+            columns={columns}
+            data={reports}
+            loading={loading}
+            onEdit={(row) => { setEditData(row); setFormOpen(true); }}
+            searchPlaceholder="Search by name, loan number..."
+          />
+        </div>
+      </div>
+
+      <InspectionReportForm
+        open={formOpen}
+        onClose={() => { setFormOpen(false); setEditData(null); }}
+        onSuccess={fetchReports}
+        editData={editData}
+      />
+
+      <AlertDialog open={!!deleteData} onOpenChange={() => setDeleteData(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Report</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this inspection report? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AppLayout>
+  );
+}
