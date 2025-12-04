@@ -16,23 +16,30 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   LogOut,
-  Check,
-  X,
   Users,
   FileText,
   Shield,
   Loader2,
   Home,
+  Download,
 } from 'lucide-react';
 import UserManagement from '@/components/UserManagement';
+import * as XLSX from 'xlsx';
 
 interface Submission {
   id: string;
+  date: string;
+  loan_ac_no: string;
   name: string;
-  address: string;
-  mobile: string;
-  summary: string;
-  status: string;
+  loan_amount: number;
+  location: string;
+  bob_region: string;
+  our_region: string;
+  lar_remarks: string | null;
+  zone: string;
+  state: string;
+  payment_status: string;
+  invoice_status: string;
   created_at: string;
 }
 
@@ -82,36 +89,48 @@ export default function Admin() {
     setLoading(false);
   };
 
-  const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase
-      .from('submissions')
-      .update({ status })
-      .eq('id', id);
+  const exportToExcel = () => {
+    const exportData = submissions.map((s) => ({
+      'Date': new Date(s.date).toLocaleDateString(),
+      'Loan A/C No': s.loan_ac_no,
+      'Name': s.name,
+      'Loan Amount': s.loan_amount,
+      'Location': s.location,
+      'BOB Region': s.bob_region,
+      'Our Region': s.our_region,
+      'LAR REMARKS': s.lar_remarks || '',
+      'ZONE': s.zone,
+      'STATE': s.state,
+      'PAYMENT STATUS': s.payment_status,
+      'INVOICE STATUS': s.invoice_status,
+    }));
 
-    if (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update status.',
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Success',
-        description: `Submission ${status}.`,
-      });
-      fetchSubmissions();
-    }
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Loan Transactions');
+    XLSX.writeFile(wb, `loan_transactions_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({
+      title: 'Export Complete',
+      description: 'Excel file has been downloaded.',
+    });
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-success/10 text-success border-success/20">Approved</Badge>;
-      case 'rejected':
-        return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Rejected</Badge>;
-      default:
-        return <Badge className="bg-warning/10 text-warning border-warning/20">Pending</Badge>;
-    }
+  const getStatusBadge = (status: string, type: 'payment' | 'invoice') => {
+    const styles: Record<string, string> = {
+      pending: 'bg-warning/10 text-warning border-warning/20',
+      paid: 'bg-success/10 text-success border-success/20',
+      overdue: 'bg-destructive/10 text-destructive border-destructive/20',
+      partial: 'bg-primary/10 text-primary border-primary/20',
+      generated: 'bg-primary/10 text-primary border-primary/20',
+      sent: 'bg-success/10 text-success border-success/20',
+      cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
+    };
+    return (
+      <Badge className={styles[status] || styles.pending}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   if (authLoading || (user && !userRole)) {
@@ -166,11 +185,17 @@ export default function Admin() {
 
           <TabsContent value="submissions" className="animate-fade-in">
             <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
-              <div className="p-6 border-b border-border">
-                <h2 className="text-lg font-semibold text-foreground">All Submissions</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Review and approve or reject user submissions
-                </p>
+              <div className="p-6 border-b border-border flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Loan Transactions</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    View and export all loan submissions
+                  </p>
+                </div>
+                <Button onClick={exportToExcel} disabled={submissions.length === 0}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export to Excel
+                </Button>
               </div>
               
               {loading ? (
@@ -182,57 +207,44 @@ export default function Admin() {
                   No submissions yet.
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Address</TableHead>
-                      <TableHead>Mobile</TableHead>
-                      <TableHead>Summary</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {submissions.map((submission) => (
-                      <TableRow key={submission.id}>
-                        <TableCell className="font-medium">{submission.name}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{submission.address}</TableCell>
-                        <TableCell>{submission.mobile}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{submission.summary}</TableCell>
-                        <TableCell>{getStatusBadge(submission.status)}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {new Date(submission.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {submission.status === 'pending' && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => updateStatus(submission.id, 'approved')}
-                                  className="text-success hover:text-success hover:bg-success/10"
-                                >
-                                  <Check className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => updateStatus(submission.id, 'rejected')}
-                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Loan A/C No</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Loan Amount</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>BOB Region</TableHead>
+                        <TableHead>Our Region</TableHead>
+                        <TableHead>LAR Remarks</TableHead>
+                        <TableHead>Zone</TableHead>
+                        <TableHead>State</TableHead>
+                        <TableHead>Payment Status</TableHead>
+                        <TableHead>Invoice Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {submissions.map((submission) => (
+                        <TableRow key={submission.id}>
+                          <TableCell>{new Date(submission.date).toLocaleDateString()}</TableCell>
+                          <TableCell className="font-medium">{submission.loan_ac_no}</TableCell>
+                          <TableCell>{submission.name}</TableCell>
+                          <TableCell>₹{submission.loan_amount.toLocaleString()}</TableCell>
+                          <TableCell>{submission.location}</TableCell>
+                          <TableCell>{submission.bob_region}</TableCell>
+                          <TableCell>{submission.our_region}</TableCell>
+                          <TableCell className="max-w-[150px] truncate">{submission.lar_remarks}</TableCell>
+                          <TableCell>{submission.zone}</TableCell>
+                          <TableCell>{submission.state}</TableCell>
+                          <TableCell>{getStatusBadge(submission.payment_status, 'payment')}</TableCell>
+                          <TableCell>{getStatusBadge(submission.invoice_status, 'invoice')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </div>
           </TabsContent>

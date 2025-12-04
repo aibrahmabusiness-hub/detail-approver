@@ -1,0 +1,22 @@
+-- Drop existing columns that are no longer needed
+ALTER TABLE public.submissions 
+DROP COLUMN IF EXISTS address,
+DROP COLUMN IF EXISTS mobile,
+DROP COLUMN IF EXISTS summary;
+
+-- Add new loan tracking columns
+ALTER TABLE public.submissions 
+ADD COLUMN IF NOT EXISTS date DATE NOT NULL DEFAULT CURRENT_DATE,
+ADD COLUMN IF NOT EXISTS loan_ac_no TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS loan_amount NUMERIC(15, 2) NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS location TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS bob_region TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS our_region TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS lar_remarks TEXT DEFAULT '',
+ADD COLUMN IF NOT EXISTS zone TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS state TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending',
+ADD COLUMN IF NOT EXISTS invoice_status TEXT NOT NULL DEFAULT 'pending';
+
+-- Drop the old status column if it exists
+ALTER TABLE public.submissions DROP COLUMN IF EXISTS status;

@@ -7,15 +7,39 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Send, CheckCircle, User, MapPin, Phone, FileText, LogIn, LogOut, Shield } from 'lucide-react';
+import { Send, CheckCircle, LogIn, LogOut, Shield, FileText } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const ZONES = ['North', 'South', 'East', 'West', 'Central'];
+const STATES = [
+  'Andhra Pradesh', 'Bihar', 'Gujarat', 'Karnataka', 'Kerala',
+  'Madhya Pradesh', 'Maharashtra', 'Punjab', 'Rajasthan', 'Tamil Nadu',
+  'Telangana', 'Uttar Pradesh', 'West Bengal', 'Delhi', 'Other'
+];
+const PAYMENT_STATUSES = ['pending', 'paid', 'overdue', 'partial'];
+const INVOICE_STATUSES = ['pending', 'generated', 'sent', 'cancelled'];
 
 export default function Index() {
   const { user, userRole, signOut } = useAuth();
   const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    loan_ac_no: '',
     name: '',
-    address: '',
-    mobile: '',
-    summary: '',
+    loan_amount: '',
+    location: '',
+    bob_region: '',
+    our_region: '',
+    lar_remarks: '',
+    zone: '',
+    state: '',
+    payment_status: 'pending',
+    invoice_status: 'pending',
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -25,13 +49,17 @@ export default function Index() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.address || !formData.mobile || !formData.summary) {
+    if (!formData.loan_ac_no || !formData.name || !formData.loan_amount || !formData.location) {
       toast({
         title: 'Missing fields',
-        description: 'Please fill in all fields.',
+        description: 'Please fill in all required fields.',
         variant: 'destructive',
       });
       return;
@@ -40,10 +68,18 @@ export default function Index() {
     setLoading(true);
     try {
       const { error } = await supabase.from('submissions').insert({
+        date: formData.date,
+        loan_ac_no: formData.loan_ac_no,
         name: formData.name,
-        address: formData.address,
-        mobile: formData.mobile,
-        summary: formData.summary,
+        loan_amount: parseFloat(formData.loan_amount),
+        location: formData.location,
+        bob_region: formData.bob_region,
+        our_region: formData.our_region,
+        lar_remarks: formData.lar_remarks,
+        zone: formData.zone,
+        state: formData.state,
+        payment_status: formData.payment_status,
+        invoice_status: formData.invoice_status,
       });
 
       if (error) throw error;
@@ -66,7 +102,20 @@ export default function Index() {
 
   const handleNewSubmission = () => {
     setSubmitted(false);
-    setFormData({ name: '', address: '', mobile: '', summary: '' });
+    setFormData({
+      date: new Date().toISOString().split('T')[0],
+      loan_ac_no: '',
+      name: '',
+      loan_amount: '',
+      location: '',
+      bob_region: '',
+      our_region: '',
+      lar_remarks: '',
+      zone: '',
+      state: '',
+      payment_status: 'pending',
+      invoice_status: 'pending',
+    });
   };
 
   if (submitted) {
@@ -97,7 +146,7 @@ export default function Index() {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground">DataCollect</h1>
+          <h1 className="text-xl font-bold text-foreground">Loan Tracker</h1>
           <div className="flex items-center gap-3">
             {user ? (
               <>
@@ -127,91 +176,176 @@ export default function Index() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-16 px-4">
+      <section className="py-12 px-4">
         <div className="container mx-auto max-w-2xl text-center animate-fade-in">
           <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6">
             <FileText className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h2 className="text-4xl font-bold text-foreground mb-4">
-            Submit Your Details
+          <h2 className="text-3xl font-bold text-foreground mb-4">
+            Loan Submission Form
           </h2>
           <p className="text-lg text-muted-foreground">
-            Fill out the form below and our team will review your submission.
+            Fill out the loan details below for tracking and management.
           </p>
         </div>
       </section>
 
       {/* Form Section */}
       <section className="pb-20 px-4">
-        <div className="container mx-auto max-w-lg">
+        <div className="container mx-auto max-w-4xl">
           <div className="bg-card rounded-2xl shadow-elevated p-8 border border-border animate-slide-up">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-foreground font-medium">
-                  Full Name
-                </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date *</Label>
+                  <Input
+                    id="date"
+                    name="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="loan_ac_no">Loan A/C No *</Label>
+                  <Input
+                    id="loan_ac_no"
+                    name="loan_ac_no"
+                    placeholder="Enter loan account number"
+                    value={formData.loan_ac_no}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name *</Label>
                   <Input
                     id="name"
                     name="name"
-                    placeholder="Enter your full name"
+                    placeholder="Enter borrower name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="pl-10"
                     required
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address" className="text-foreground font-medium">
-                  Address
-                </Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <div className="space-y-2">
+                  <Label htmlFor="loan_amount">Loan Amount *</Label>
                   <Input
-                    id="address"
-                    name="address"
-                    placeholder="Enter your address"
-                    value={formData.address}
+                    id="loan_amount"
+                    name="loan_amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="Enter loan amount"
+                    value={formData.loan_amount}
                     onChange={handleInputChange}
-                    className="pl-10"
                     required
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="mobile" className="text-foreground font-medium">
-                  Mobile Number
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location *</Label>
                   <Input
-                    id="mobile"
-                    name="mobile"
-                    type="tel"
-                    placeholder="Enter your mobile number"
-                    value={formData.mobile}
+                    id="location"
+                    name="location"
+                    placeholder="Enter location"
+                    value={formData.location}
                     onChange={handleInputChange}
-                    className="pl-10"
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bob_region">BOB Region</Label>
+                  <Input
+                    id="bob_region"
+                    name="bob_region"
+                    placeholder="Enter BOB region"
+                    value={formData.bob_region}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="our_region">Our Region</Label>
+                  <Input
+                    id="our_region"
+                    name="our_region"
+                    placeholder="Enter our region"
+                    value={formData.our_region}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="zone">Zone</Label>
+                  <Select value={formData.zone} onValueChange={(v) => handleSelectChange('zone', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select zone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ZONES.map((zone) => (
+                        <SelectItem key={zone} value={zone}>{zone}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Select value={formData.state} onValueChange={(v) => handleSelectChange('state', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATES.map((state) => (
+                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payment_status">Payment Status</Label>
+                  <Select value={formData.payment_status} onValueChange={(v) => handleSelectChange('payment_status', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="invoice_status">Invoice Status</Label>
+                  <Select value={formData.invoice_status} onValueChange={(v) => handleSelectChange('invoice_status', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select invoice status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INVOICE_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="summary" className="text-foreground font-medium">
-                  Summary
-                </Label>
+                <Label htmlFor="lar_remarks">LAR Remarks</Label>
                 <Textarea
-                  id="summary"
-                  name="summary"
-                  placeholder="Write a brief summary about yourself..."
-                  value={formData.summary}
+                  id="lar_remarks"
+                  name="lar_remarks"
+                  placeholder="Enter any remarks..."
+                  value={formData.lar_remarks}
                   onChange={handleInputChange}
-                  required
+                  rows={3}
                 />
               </div>
 
@@ -226,7 +360,7 @@ export default function Index() {
                   'Submitting...'
                 ) : (
                   <>
-                    Submit Details
+                    Submit Loan Details
                     <Send className="w-5 h-5" />
                   </>
                 )}
