@@ -34,34 +34,55 @@ export type Database = {
       }
       submissions: {
         Row: {
-          address: string
+          bob_region: string
           created_at: string | null
+          date: string
           id: string
-          mobile: string
+          invoice_status: string
+          lar_remarks: string | null
+          loan_ac_no: string
+          loan_amount: number
+          location: string
           name: string
-          status: string | null
-          summary: string
+          our_region: string
+          payment_status: string
+          state: string
           updated_at: string | null
+          zone: string
         }
         Insert: {
-          address: string
+          bob_region?: string
           created_at?: string | null
+          date?: string
           id?: string
-          mobile: string
+          invoice_status?: string
+          lar_remarks?: string | null
+          loan_ac_no?: string
+          loan_amount?: number
+          location?: string
           name: string
-          status?: string | null
-          summary: string
+          our_region?: string
+          payment_status?: string
+          state?: string
           updated_at?: string | null
+          zone?: string
         }
         Update: {
-          address?: string
+          bob_region?: string
           created_at?: string | null
+          date?: string
           id?: string
-          mobile?: string
+          invoice_status?: string
+          lar_remarks?: string | null
+          loan_ac_no?: string
+          loan_amount?: number
+          location?: string
           name?: string
-          status?: string | null
-          summary?: string
+          our_region?: string
+          payment_status?: string
+          state?: string
           updated_at?: string | null
+          zone?: string
         }
         Relationships: []
       }
