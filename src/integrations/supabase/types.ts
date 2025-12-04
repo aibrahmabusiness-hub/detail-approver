@@ -14,6 +14,147 @@ export type Database = {
   }
   public: {
     Tables: {
+      field_inspection_reports: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string | null
+          customer_name: string
+          date: string
+          id: string
+          invoice_status: string
+          lar_remarks: string | null
+          loan_ac_no: string
+          loan_amount: number
+          location: string
+          payment_status: string
+          region: string
+          state: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id?: string | null
+          customer_name: string
+          date?: string
+          id?: string
+          invoice_status?: string
+          lar_remarks?: string | null
+          loan_ac_no: string
+          loan_amount?: number
+          location?: string
+          payment_status?: string
+          region?: string
+          state?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string | null
+          customer_name?: string
+          date?: string
+          id?: string
+          invoice_status?: string
+          lar_remarks?: string | null
+          loan_ac_no?: string
+          loan_amount?: number
+          location?: string
+          payment_status?: string
+          region?: string
+          state?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      header_details: {
+        Row: {
+          address: string | null
+          company_name: string
+          contact_email: string | null
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_name?: string
+          contact_email?: string | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          contact_email?: string | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      payout_reports: {
+        Row: {
+          amount_paid: number
+          bank_details: string | null
+          contact_no: string | null
+          created_at: string | null
+          created_by_user_id: string | null
+          financier: string
+          id: string
+          less_tds: number
+          loan_amount: number
+          mail_sent: string
+          month: string
+          nett: number
+          pan: string | null
+          payment_status: string
+          payout_percentage: number
+          sm_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_paid?: number
+          bank_details?: string | null
+          contact_no?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          financier: string
+          id?: string
+          less_tds?: number
+          loan_amount?: number
+          mail_sent?: string
+          month: string
+          nett?: number
+          pan?: string | null
+          payment_status?: string
+          payout_percentage?: number
+          sm_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_paid?: number
+          bank_details?: string | null
+          contact_no?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          financier?: string
+          id?: string
+          less_tds?: number
+          loan_amount?: number
+          mail_sent?: string
+          month?: string
+          nett?: number
+          pan?: string | null
+          payment_status?: string
+          payout_percentage?: number
+          sm_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -119,6 +260,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      user_role: "admin" | "field_agent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -247,6 +389,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      user_role: ["admin", "field_agent"],
     },
   },
 } as const
